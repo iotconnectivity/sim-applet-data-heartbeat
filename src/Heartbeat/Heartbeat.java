@@ -45,46 +45,12 @@ public class Heartbeat extends Applet implements ToolkitInterface, ToolkitConsta
     //GPRS = 0x02
     private static final byte BEARER_TYPE_GPRS                       = (byte) 0x02; 
 
-    // The service precedence class indicates the relative priority of maintaining the service
-    //Precedence Class nº 1 => High priority.
-    private static final byte BEARER_PARAMETER_PRECEDENCE_CLASS1     = (byte) 0x01;
-    
-    // The delay parameter defines the end-to-end transfer delay incurred in the transmission of the SDUs through 
-    // the GPRS network
-    //Delay Class n°1 => Predictive 
-    private static final byte BEARER_PARAMETER_DELAY_CLASS1          = (byte) 0x01;
-
-    // The reliability parameter indicates the transmission characteristics that are required by an application. 
-    // The reliability class defines the probability of loss of, duplication of, 
-    // mis sequencing of or corruption of SDUs
-    private static final byte BEARER_PARAMETER_RELIABILITY_CLASS1    = (byte) 0x01;
-
-    // The peak throughput class specifies the maximum rate at which data is expected to be transferred accross
-    // the network for an individual PDP context.
-    //Peak throughput in octets per second up to 1000 (8kbits/s)
-    private static final byte BEARER_PARAMETER_PEAK_THROUGHPUT_CLASS1= (byte) 0x01;
-    
-    // The Mean throughput class specifies the average rate at which data is expected to be transferred 
-    // accross the GPRS network during the remaining lifetime of an activated Packet Data Protocol (PDP) context.
-    //Mean throughput in octets per hour 100 (~0.22bits/s)
-    private static final byte BEARER_PARAMETER_MEAN_THROUGHPUT_CLASS1    = (byte) 0x01;
-
-    // PDP Type --> IP
-    private static final byte BEARER_PARAMETER_PDP_IP                    = (byte) 0x02;
-
-    // Define parameters necessary to launch a PDP context
-    private static byte[] BearerParameters=    {(byte) BEARER_TYPE_GPRS, (byte) BEARER_PARAMETER_PRECEDENCE_CLASS1,
-        (byte) BEARER_PARAMETER_DELAY_CLASS1, (byte) BEARER_PARAMETER_RELIABILITY_CLASS1,
-        (byte) BEARER_PARAMETER_PEAK_THROUGHPUT_CLASS1, (byte) BEARER_PARAMETER_MEAN_THROUGHPUT_CLASS1,
-        (byte) BEARER_PARAMETER_PDP_IP };
-
-
     // Type of Address IPV4=21,
     private static final byte TYPE_OF_ADDRESS_IPV4      = (byte) 0x21;
     // SIM/ME interface transport level UDP=01
-    private static final byte TRANSPORT_PROTOCOL_TYPE   = (byte) 0x01;
+    //private static final byte TRANSPORT_PROTOCOL_TYPE   = (byte) 0x01;
+        private static final byte TRANSPORT_PROTOCOL_TYPE = (byte) 0x02;
 
-    // --> ... end GPRS case
 
     private byte result;
 
@@ -96,7 +62,9 @@ public class Heartbeat extends Applet implements ToolkitInterface, ToolkitConsta
     // Port number : integer
     private static byte[] portNumber = {(byte)0x00,(byte)0x23};
     // IP Address of the Server 
-    private static byte[] IPAddress = {(byte)163,(byte)187,(byte)203,(byte)1};
+    //private static byte[] IPAddress = {(byte)163,(byte)187,(byte)203,(byte)1};
+    private static byte[] IPAddress = {(byte)172,(byte)217,(byte)17,(byte)3}; // google
+
     // Channel Identifier given by the ME after the OPEN CHANNEL proactive command
     private static byte channelID = 0x00;
 
@@ -143,31 +111,25 @@ public class Heartbeat extends Applet implements ToolkitInterface, ToolkitConsta
 			if (selectedItemId == menuItem) {
 
                 try {
+
     				// 1st Open GPRS connection
-    				// prepare the OPEN CHANNEL (on demand link establishment = 0x00 for the qualifier byte)
-    				proHdlr.init(PRO_CMD_OPEN_CHANNEL,(byte)0, DEV_ID_ME);
+    				// prepare the OPEN CHANNEL (inmediate link establishment = 0x01 for the qualifier byte)
+    				proHdlr.init(PRO_CMD_OPEN_CHANNEL,(byte)1, DEV_ID_ME);
     				// Add Bearer description TLV
-    				proHdlr.appendTLV((byte)(TAG_BEARER_DESCRIPTION | TAG_SET_CR),(byte) BEARER_TYPE_GPRS, 
-    					BearerParameters,(short)0,(short)BearerParameters.length);
+                    proHdlr.appendTLV((byte)(TAG_BEARER_DESCRIPTION | TAG_SET_CR),(byte) BEARER_TYPE_GPRS);
                     // Add Buffer size TLV
                     proHdlr.appendTLV((byte)(TAG_BUFFER_SIZE | TAG_SET_CR),(byte)(BUFFER_SIZE>>(byte)8),(byte)BUFFER_SIZE);
                     // Add APN TLV
                     proHdlr.appendTLV((byte)(TAG_NETWORK_ACCESS_NAME | TAG_SET_CR),myAPN,(short)0,(short)myAPN.length);
-                    // Add SIM/ME interface transport level UDP=01, Port 23 = Telnet
+
+                    // Add SIM/ME interface transport level TCP=02, Port 80 = http
                     proHdlr.appendTLV((byte) (TAG_SIM_ME_INTERFACE_TRANSPORT_LEVEL | TAG_SET_CR),TRANSPORT_PROTOCOL_TYPE, 
                                         portNumber, (short)0, (short)portNumber.length);
                     // Add Data Destination Address TLV
                     // Type of Address IPV4=21, IPAddress contains the IPV4 Address
                     proHdlr.appendTLV((byte) (TAG_DATA_DESTINATION_ADDRESS | TAG_SET_CR),TYPE_OF_ADDRESS_IPV4, 
                                         IPAddress,(short)0, (short) IPAddress.length);
-
-
-
-
-
                     result = proHdlr.send();
-
-
 
 /*
                     // 2° Retrieve the channel ID allocated by the ME 
